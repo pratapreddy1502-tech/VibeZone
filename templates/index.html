@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VibeZone</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f6f8; color: #222; margin: 0; padding: 0; }
+    .page { max-width: 760px; margin: 0 auto; padding: 24px; }
+    .top-nav { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
+    .top-nav a { display: inline-block; padding: 10px 16px; border-radius: 8px; background: #fff; color: #2563eb; text-decoration: none; border: 1px solid #cbd5e1; }
+    .top-nav a:hover { background: #eff6ff; }
+    h1, h2 { color: #111; }
+    .card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,.06); margin-bottom: 20px; }
+    label { display: block; margin-top: 12px; font-weight: 600; }
+    input, textarea, button { width: 100%; margin-top: 8px; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1rem; }
+    button { background: #2563eb; color: #fff; border: none; cursor: pointer; }
+    button:hover { background: #1d4ed8; }
+    .small { font-size: .92rem; color: #555; }
+    .message { margin-top: 12px; color: #1f2937; }
+    .error { color: #b91c1c; }
+    .success { color: #166534; }
+    .row { display: grid; gap: 16px; grid-template-columns: 1fr; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <nav class="top-nav">
+      <a href="#login-section">Login</a>
+      <a href="#edit-section">Edit Profile</a>
+      <a href="#token-section">Token</a>
+    </nav>
+    <h1>VibeZone Website</h1>
+    <div class="card" id="login-section">
+      <h2>Login</h2>
+      <p class="small">Enter your email and password to login and use profile editing.</p>
+      <form id="login-form">
+        <label>Email</label>
+        <input type="email" id="login-email" required placeholder="you@example.com" />
+        <label>Password</label>
+        <input type="password" id="login-password" required placeholder="Your password" />
+        <button type="submit">Login</button>
+      </form>
+      <p id="login-message" class="message"></p>
+    </div>
+
+    <div class="card" id="edit-section">
+      <h2>Edit Profile</h2>
+      <p class="small">After login, update your username, email, bio, or profile image URL.</p>
+      <form id="edit-form">
+        <label>Username</label>
+        <input type="text" id="edit-username" placeholder="pratap_07" />
+        <label>Email</label>
+        <input type="email" id="edit-email" placeholder="you@example.com" />
+        <label>Bio</label>
+        <textarea id="edit-bio" rows="4" placeholder="Write something about yourself..."></textarea>
+        <label>Profile Image URL</label>
+        <input type="text" id="edit-profile-image" placeholder="https://example.com/avatar.png" />
+        <button type="submit">Save Profile</button>
+      </form>
+      <p id="edit-message" class="message"></p>
+    </div>
+
+    <div class="card" id="token-section">
+      <h2>Current Token</h2>
+      <p class="small">This token is used to authenticate the edit profile request.</p>
+      <textarea id="token-field" rows="3" readonly placeholder="Login to see your token"></textarea>
+      <button id="clear-token" type="button">Clear token</button>
+    </div>
+  </div>
+
+  <script>
+    const tokenKey = 'vibezone_token';
+    const loginMessage = document.getElementById('login-message');
+    const editMessage = document.getElementById('edit-message');
+    const tokenField = document.getElementById('token-field');
+
+    function setToken(token) {
+      localStorage.setItem(tokenKey, token);
+      tokenField.value = token;
+    }
+
+    function clearToken() {
+      localStorage.removeItem(tokenKey);
+      tokenField.value = '';
+    }
+
+    function getToken() {
+      return localStorage.getItem(tokenKey) || '';
+    }
+
+    document.getElementById('login-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      loginMessage.textContent = '';
+      editMessage.textContent = '';
+
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+
+      try {
+        const response = await fetch('/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+        if (response.ok && data.token) {
+          setToken(data.token);
+          loginMessage.textContent = 'Login successful. Token saved.';
+          loginMessage.className = 'message success';
+        } else {
+          loginMessage.textContent = data.detail || data.error || 'Login failed';
+          loginMessage.className = 'message error';
+        }
+      } catch (error) {
+        loginMessage.textContent = 'Network error during login.';
+        loginMessage.className = 'message error';
+      }
+    });
+
+    document.getElementById('edit-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      editMessage.textContent = '';
+
+      const token = getToken();
+      if (!token) {
+        editMessage.textContent = 'Please login first to edit your profile.';
+        editMessage.className = 'message error';
+        return;
+      }
+
+      const username = document.getElementById('edit-username').value.trim();
+      const email = document.getElementById('edit-email').value.trim();
+      const bio = document.getElementById('edit-bio').value.trim();
+      const profile_image = document.getElementById('edit-profile-image').value.trim();
+
+      const payload = {};
+      if (username) payload.username = username;
+      if (email) payload.email = email;
+      if (bio) payload.bio = bio;
+      if (profile_image) payload.profile_image = profile_image;
+
+      if (Object.keys(payload).length === 0) {
+        editMessage.textContent = 'Enter at least one field to update.';
+        editMessage.className = 'message error';
+        return;
+      }
+
+      try {
+        const response = await fetch('/edit-profile', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          editMessage.textContent = data.message || 'Profile updated successfully.';
+          editMessage.className = 'message success';
+        } else {
+          editMessage.textContent = data.detail || data.error || 'Update failed';
+          editMessage.className = 'message error';
+        }
+      } catch (error) {
+        editMessage.textContent = 'Network error during profile update.';
+        editMessage.className = 'message error';
+      }
+    });
+
+    document.getElementById('clear-token').addEventListener('click', () => {
+      clearToken();
+      loginMessage.textContent = 'Token cleared.';
+      loginMessage.className = 'message';
+    });
+
+    window.addEventListener('load', () => {
+      tokenField.value = getToken();
+    });
+  </script>
+</body>
+</html>

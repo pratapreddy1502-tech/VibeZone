@@ -1,0 +1,9 @@
+.expo
+.git
+.metro-tmp
+node_modules
+uploads
+__pycache__
+*.pyc
+*.log
+.env
