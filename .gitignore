@@ -43,3 +43,4 @@ yarn-error.*
 # uploaded media storage
 uploads/*
 !uploads/.gitkeep
+expo-start.log fastapi-error.log fastapi-start.log
