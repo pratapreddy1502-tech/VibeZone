@@ -27,7 +27,7 @@ from fastapi import (
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import IntegrityError
@@ -77,17 +77,70 @@ from auth import (
 Base.metadata.create_all(bind=engine)
 
 
-def ensure_reel_schema():
-    statements = [
-        "ALTER TABLE reels ADD COLUMN IF NOT EXISTS views_count INTEGER DEFAULT 0",
-        "ALTER TABLE reels ADD COLUMN IF NOT EXISTS shares_count INTEGER DEFAULT 0",
-        "ALTER TABLE likes ADD COLUMN IF NOT EXISTS reel_id INTEGER",
-        "ALTER TABLE comments ADD COLUMN IF NOT EXISTS reel_id INTEGER"
-    ]
+ADD_COLUMN_IF_NOT_EXISTS_PATTERN = re.compile(
+    r"^\s*ALTER\s+TABLE\s+([A-Za-z_][A-Za-z0-9_]*)\s+"
+    r"ADD\s+COLUMN\s+(?:IF\s+NOT\s+EXISTS\s+)?"
+    r"([A-Za-z_][A-Za-z0-9_]*)\s+(.+?)\s*;?\s*$",
+    re.IGNORECASE | re.DOTALL
+)
+
+
+def column_exists(connection, table_name: str, column_name: str):
+    try:
+        columns = inspect(connection).get_columns(table_name)
+    except Exception:
+        return False
+
+    return any(column["name"] == column_name for column in columns)
+
+
+def execute_add_column_if_not_exists(statement: str):
+    match = ADD_COLUMN_IF_NOT_EXISTS_PATTERN.match(statement)
+
+    if not match:
+        return False
+
+    table_name, column_name, column_definition = match.groups()
+
+    sqlite_statement = (
+        f"ALTER TABLE {table_name} "
+        f"ADD COLUMN {column_name} {column_definition}"
+    )
 
     with engine.begin() as connection:
-        for statement in statements:
+        if column_exists(connection, table_name, column_name):
+            return True
+
+    try:
+        with engine.begin() as connection:
+            connection.execute(text(sqlite_statement))
+    except Exception:
+        with engine.connect() as connection:
+            if column_exists(connection, table_name, column_name):
+                return True
+        raise
+
+    return True
+
+
+def execute_schema_statements(statements: list[str]):
+    for statement in statements:
+        if execute_add_column_if_not_exists(statement):
+            continue
+
+        with engine.begin() as connection:
             connection.execute(text(statement))
+
+
+def ensure_reel_schema():
+    statements = [
+        "ALTER TABLE reels ADD COLUMN views_count INTEGER DEFAULT 0",
+        "ALTER TABLE reels ADD COLUMN shares_count INTEGER DEFAULT 0",
+        "ALTER TABLE likes ADD COLUMN reel_id INTEGER",
+        "ALTER TABLE comments ADD COLUMN reel_id INTEGER"
+    ]
+
+    execute_schema_statements(statements)
 
 
 ensure_reel_schema()
@@ -106,19 +159,17 @@ def ensure_story_schema():
             expires_at TIMESTAMP
         )
         """,
-        "ALTER TABLE stories ADD COLUMN IF NOT EXISTS user_id INTEGER",
-        "ALTER TABLE stories ADD COLUMN IF NOT EXISTS media_url VARCHAR",
-        "ALTER TABLE stories ADD COLUMN IF NOT EXISTS media_type VARCHAR",
-        "ALTER TABLE stories ADD COLUMN IF NOT EXISTS caption VARCHAR",
-        "ALTER TABLE stories ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
-        "ALTER TABLE stories ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP",
+        "ALTER TABLE stories ADD COLUMN user_id INTEGER",
+        "ALTER TABLE stories ADD COLUMN media_url VARCHAR",
+        "ALTER TABLE stories ADD COLUMN media_type VARCHAR",
+        "ALTER TABLE stories ADD COLUMN caption VARCHAR",
+        "ALTER TABLE stories ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        "ALTER TABLE stories ADD COLUMN expires_at TIMESTAMP",
         "CREATE INDEX IF NOT EXISTS idx_stories_user_id ON stories(user_id)",
         "CREATE INDEX IF NOT EXISTS idx_stories_expires_at ON stories(expires_at)"
     ]
 
-    with engine.begin() as connection:
-        for statement in statements:
-            connection.execute(text(statement))
+    execute_schema_statements(statements)
 
 
 ensure_story_schema()
@@ -136,19 +187,17 @@ def ensure_call_history_schema():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         """,
-        "ALTER TABLE call_history ADD COLUMN IF NOT EXISTS caller_id INTEGER",
-        "ALTER TABLE call_history ADD COLUMN IF NOT EXISTS receiver_id INTEGER",
-        "ALTER TABLE call_history ADD COLUMN IF NOT EXISTS call_type VARCHAR DEFAULT 'voice'",
+        "ALTER TABLE call_history ADD COLUMN caller_id INTEGER",
+        "ALTER TABLE call_history ADD COLUMN receiver_id INTEGER",
+        "ALTER TABLE call_history ADD COLUMN call_type VARCHAR DEFAULT 'voice'",
         "UPDATE call_history SET call_type = 'voice' WHERE call_type IS NULL",
-        "ALTER TABLE call_history ADD COLUMN IF NOT EXISTS duration INTEGER DEFAULT 0",
-        "ALTER TABLE call_history ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        "ALTER TABLE call_history ADD COLUMN duration INTEGER DEFAULT 0",
+        "ALTER TABLE call_history ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
         "CREATE INDEX IF NOT EXISTS idx_call_history_caller_id ON call_history(caller_id)",
         "CREATE INDEX IF NOT EXISTS idx_call_history_receiver_id ON call_history(receiver_id)"
     ]
 
-    with engine.begin() as connection:
-        for statement in statements:
-            connection.execute(text(statement))
+    execute_schema_statements(statements)
 
 
 ensure_call_history_schema()
@@ -156,37 +205,35 @@ ensure_call_history_schema()
 
 def ensure_chat_schema():
     statements = [
-        "ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_delivered BOOLEAN DEFAULT FALSE",
-        "ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT FALSE",
-        "ALTER TABLE messages ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
-        "ALTER TABLE messages ADD COLUMN IF NOT EXISTS content VARCHAR",
+        "ALTER TABLE messages ADD COLUMN is_delivered BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE messages ADD COLUMN is_read BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE messages ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        "ALTER TABLE messages ADD COLUMN content VARCHAR",
         "UPDATE messages SET content = text WHERE content IS NULL AND text IS NOT NULL",
-        "ALTER TABLE messages ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'sent'",
+        "ALTER TABLE messages ADD COLUMN status VARCHAR DEFAULT 'sent'",
         "UPDATE messages SET status = CASE WHEN is_read IS TRUE THEN 'seen' WHEN is_delivered IS TRUE THEN 'delivered' ELSE 'sent' END WHERE status IS NULL",
-        "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT FALSE",
-        "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS data_json VARCHAR",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS push_token VARCHAR",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name VARCHAR",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS website VARCHAR",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS gender VARCHAR",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth VARCHAR",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS theme_settings TEXT",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS chat_pin_hash VARCHAR",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS chat_lock_enabled BOOLEAN DEFAULT FALSE",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS chat_lock_biometric BOOLEAN DEFAULT TRUE",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS chat_lock_face_id BOOLEAN DEFAULT TRUE",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS hide_locked_chats BOOLEAN DEFAULT FALSE",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS auto_lock_after_exit BOOLEAN DEFAULT TRUE",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS ghost_lock_mode BOOLEAN DEFAULT FALSE",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS account_type VARCHAR DEFAULT 'public'",
+        "ALTER TABLE notifications ADD COLUMN is_read BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE notifications ADD COLUMN data_json VARCHAR",
+        "ALTER TABLE users ADD COLUMN push_token VARCHAR",
+        "ALTER TABLE users ADD COLUMN last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        "ALTER TABLE users ADD COLUMN full_name VARCHAR",
+        "ALTER TABLE users ADD COLUMN website VARCHAR",
+        "ALTER TABLE users ADD COLUMN gender VARCHAR",
+        "ALTER TABLE users ADD COLUMN date_of_birth VARCHAR",
+        "ALTER TABLE users ADD COLUMN theme_settings TEXT",
+        "ALTER TABLE users ADD COLUMN chat_pin_hash VARCHAR",
+        "ALTER TABLE users ADD COLUMN chat_lock_enabled BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE users ADD COLUMN chat_lock_biometric BOOLEAN DEFAULT TRUE",
+        "ALTER TABLE users ADD COLUMN chat_lock_face_id BOOLEAN DEFAULT TRUE",
+        "ALTER TABLE users ADD COLUMN hide_locked_chats BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE users ADD COLUMN auto_lock_after_exit BOOLEAN DEFAULT TRUE",
+        "ALTER TABLE users ADD COLUMN ghost_lock_mode BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE users ADD COLUMN account_type VARCHAR DEFAULT 'public'",
         "UPDATE users SET account_type = 'public' WHERE account_type IS NULL OR account_type NOT IN ('public', 'private')",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+        "ALTER TABLE users ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
     ]
 
-    with engine.begin() as connection:
-        for statement in statements:
-            connection.execute(text(statement))
+    execute_schema_statements(statements)
 
 
 ensure_chat_schema()
