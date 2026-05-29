@@ -5,10 +5,12 @@ declare const process: {
 };
 
 const API_PORT = 8000;
+const DEFAULT_PRODUCTION_API_BASE_URL = 'https://vibezone-mwg7.onrender.com';
 const env = typeof process !== 'undefined' ? process.env || {} : {};
 const PRODUCTION_API_BASE_URLS = [
   env.EXPO_PUBLIC_API_BASE_URL,
   ...(env.EXPO_PUBLIC_API_BASE_URLS || '').split(','),
+  DEFAULT_PRODUCTION_API_BASE_URL,
 ]
   .map((url) => url?.trim().replace(/\/$/, ''))
   .filter(Boolean) as string[];

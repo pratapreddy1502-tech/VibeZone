@@ -1,6 +1,6 @@
 import { getApiBaseUrls } from '../config/api';
 
-const API_TIMEOUT_MS = 4500;
+const API_TIMEOUT_MS = 12000;
 export const SESSION_EXPIRED_MESSAGE =
   'Your login session expired. Please log in again.';
 
@@ -111,7 +111,7 @@ export async function fetchApi(
 
   const tried = baseUrls.join(', ');
   const detail = isAbortError(lastError)
-    ? 'Request timed out. Check that FastAPI is running on port 8000 and your phone can reach the PC.'
+    ? 'Request timed out. Check that the online FastAPI backend is awake and reachable.'
     : lastError instanceof Error
       ? lastError.message
       : String(lastError);
