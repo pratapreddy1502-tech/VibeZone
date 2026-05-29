@@ -1,20 +1,29 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
 import os
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 from settings import load_env_file
 
 
 load_env_file()
 
-DATABASE_URL = (
-    os.getenv("DATABASE_URL")
-    or os.getenv("VIBEZONE_DATABASE_URL")
-    or "postgresql://postgres:1502@localhost/VIBEZONE"
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    os.getenv("VIBEZONE_DATABASE_URL", "sqlite:///./vibezone.db")
 )
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+engine_kwargs = {
+    "pool_pre_ping": True,
+}
+
+if DATABASE_URL.startswith("sqlite"):
+    engine_kwargs["connect_args"] = {"check_same_thread": False}
+
+engine = create_engine(DATABASE_URL, **engine_kwargs)
 
 SessionLocal = sessionmaker(
     autocommit=False,
@@ -23,6 +32,7 @@ SessionLocal = sessionmaker(
 )
 
 Base = declarative_base()
+
 
 def get_db():
     db = SessionLocal()
