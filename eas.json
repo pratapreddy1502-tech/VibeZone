@@ -10,7 +10,6 @@
       "env": {
         "EXPO_PUBLIC_APP_ENV": "development",
         "EXPO_PUBLIC_API_BASE_URL": "https://vibezone-mwg7.onrender.com",
-        "EXPO_PUBLIC_USE_LOCAL_API": "false",
         "EXPO_PUBLIC_WEBRTC_ICE_SERVERS": "stun:stun.l.google.com:19302"
       },
       "android": {
@@ -23,7 +22,6 @@
       "env": {
         "EXPO_PUBLIC_APP_ENV": "production",
         "EXPO_PUBLIC_API_BASE_URL": "https://vibezone-mwg7.onrender.com",
-        "EXPO_PUBLIC_USE_LOCAL_API": "false",
         "EXPO_PUBLIC_WEBRTC_ICE_SERVERS": "stun:stun.l.google.com:19302"
       },
       "android": {
@@ -35,7 +33,6 @@
       "env": {
         "EXPO_PUBLIC_APP_ENV": "production",
         "EXPO_PUBLIC_API_BASE_URL": "https://vibezone-mwg7.onrender.com",
-        "EXPO_PUBLIC_USE_LOCAL_API": "false",
         "EXPO_PUBLIC_WEBRTC_ICE_SERVERS": "stun:stun.l.google.com:19302"
       },
       "android": {
@@ -48,7 +45,6 @@
       "env": {
         "EXPO_PUBLIC_APP_ENV": "production",
         "EXPO_PUBLIC_API_BASE_URL": "https://vibezone-mwg7.onrender.com",
-        "EXPO_PUBLIC_USE_LOCAL_API": "false",
         "EXPO_PUBLIC_WEBRTC_ICE_SERVERS": "stun:stun.l.google.com:19302"
       }
     }

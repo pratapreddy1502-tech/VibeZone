@@ -31,10 +31,11 @@ Use `WEB_CONCURRENCY=1` until Socket.IO presence/call state is moved to Redis. M
 Set this before building the Expo development build:
 
 ```env
-EXPO_PUBLIC_API_BASE_URL=https://vibezone-api.up.railway.app
+EXPO_PUBLIC_API_BASE_URL=https://vibezone-mwg7.onrender.com
 ```
 
-The app will try this production URL first, then fall back to local development URLs.
+The Android production app uses only `https://vibezone-mwg7.onrender.com`.
+Do not add local backend fallback URLs to the mobile app.
 
 ## Railway
 

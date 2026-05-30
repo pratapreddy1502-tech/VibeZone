@@ -1264,7 +1264,7 @@ def send_otp_email(email: str, otp: str):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"] if cors_origins == "*" else cors_origins,
-    allow_credentials=True,
+    allow_credentials=False if cors_origins == "*" else True,
     allow_methods=["*"],
     allow_headers=["*"],
 )

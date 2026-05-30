@@ -28,6 +28,7 @@
         "backgroundColor": "#ffffff"
       },
       "permissions": [
+        "INTERNET",
         "RECORD_AUDIO",
         "CAMERA",
         "MODIFY_AUDIO_SETTINGS",

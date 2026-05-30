@@ -34,10 +34,9 @@ if errorlevel 1 (
 
 echo.
 echo Starting VibeZone FastAPI backend...
-for /f "usebackq delims=" %%I in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "(Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike '127.*' -and $_.PrefixOrigin -ne 'WellKnown' } | Select-Object -First 1 -ExpandProperty IPAddress)"`) do set "LAN_IP=%%I"
-if "%LAN_IP%"=="" set "LAN_IP=10.110.221.227"
-echo PC URL:    http://localhost:8000/reels
-echo Phone URL: http://%LAN_IP%:8000/reels
+set "PORT=8000"
+echo This starts a local development server only.
+echo The Android production APK uses https://vibezone-mwg7.onrender.com.
 echo.
 echo Checking backend imports and PostgreSQL connection...
 %PYTHON_CMD% -c "import main; print('Backend import OK')"
@@ -50,7 +49,6 @@ if errorlevel 1 (
 )
 
 echo.
-echo Uvicorn is listening on all network adapters.
-echo Keep this window open while using the mobile app.
-%PYTHON_CMD% -m uvicorn main:app --host 0.0.0.0 --port 8000
+echo Uvicorn is listening on all network adapters for local development.
+%PYTHON_CMD% -m uvicorn main:app --host 0.0.0.0 --port %PORT%
 pause
