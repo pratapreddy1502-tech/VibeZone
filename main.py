@@ -1289,6 +1289,14 @@ def health(db: Session = Depends(get_db)):
         "stories": "/uploads/stories"
     }
 
+
+@app.get("/me")
+def me(current_user: User = Depends(get_current_user)):
+    return {
+        "user": user_payload(current_user)
+    }
+
+
 @app.post("/register")
 def register(user: UserCreate, db: Session = Depends(get_db)):
 

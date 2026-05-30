@@ -30,3 +30,7 @@ export function verifyRegister(data: {
 }) {
   return apiRequest('/verify-register', 'POST', data);
 }
+
+export function getCurrentUser(token: string) {
+  return apiRequest('/me', 'GET', undefined, token);
+}

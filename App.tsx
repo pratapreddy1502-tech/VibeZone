@@ -8,6 +8,8 @@ import { useAuthStore } from './app/store/authStore';
 import { VibesProvider } from './app/context/VibesContext';
 import { VoiceCallProvider } from './app/context/VoiceCallContext';
 import RealtimeBridge from './app/components/RealtimeBridge';
+import { isSessionExpiredError } from './app/services/api';
+import { getCurrentUser } from './app/services/authApi';
 
 import AuthNavigator from './app/navigation/AuthNavigator';
 import BottomTabNavigator from './app/navigation/BottomTabNavigator';
@@ -16,6 +18,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const setAuth = useAuthStore((state) => state.setAuth);
+  const logout = useAuthStore((state) => state.logout);
 
   useEffect(() => {
     checkLoginStatus();
@@ -29,7 +32,18 @@ export default function App() {
         const userJson = await AsyncStorage.getItem('user');
         if (userJson) {
           const user = JSON.parse(userJson);
-          setAuth(user, token);
+          try {
+            const freshUser = await getCurrentUser(token);
+            const nextUser = freshUser?.user || user;
+            await AsyncStorage.setItem('user', JSON.stringify(nextUser));
+            setAuth(nextUser, token);
+          } catch (error) {
+            if (isSessionExpiredError(error)) {
+              logout();
+            } else {
+              setAuth(user, token);
+            }
+          }
         }
       }
     } catch (error) {

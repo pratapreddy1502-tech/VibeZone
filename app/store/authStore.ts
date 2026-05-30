@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface User {
   id: number;
@@ -35,12 +36,14 @@ export const useAuthStore = create<AuthState>((set) => ({
       isLoggedIn: true,
     }),
 
-  logout: () =>
+  logout: () => {
+    AsyncStorage.multiRemove(['token', 'user']).catch(() => undefined);
     set({
       user: null,
       token: null,
       isLoggedIn: false,
-    }),
+    });
+  },
 
   checkAuth: () =>
     set((state) => ({
