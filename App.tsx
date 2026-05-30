@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer } from '@react-navigation/native';
-import { useAuthStore } from './app/store/authStore';
+import { clearAuthFormStorage, useAuthStore } from './app/store/authStore';
 import { VibesProvider } from './app/context/VibesContext';
 import { VoiceCallProvider } from './app/context/VoiceCallContext';
 import RealtimeBridge from './app/components/RealtimeBridge';
@@ -45,6 +45,8 @@ export default function App() {
             }
           }
         }
+      } else {
+        await clearAuthFormStorage();
       }
     } catch (error) {
       console.log('Error checking login status:', error);

@@ -1,6 +1,23 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+export const AUTH_FORM_STORAGE_KEYS = [
+  'loginEmail',
+  'loginPassword',
+  'registerUsername',
+  'registerEmail',
+  'registerPassword',
+  'authEmail',
+  'authPassword',
+  'email',
+  'username',
+  'password',
+];
+
+export function clearAuthFormStorage() {
+  return AsyncStorage.multiRemove(AUTH_FORM_STORAGE_KEYS).catch(() => undefined);
+}
+
 interface User {
   id: number;
   username: string;
@@ -37,7 +54,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     }),
 
   logout: () => {
-    AsyncStorage.multiRemove(['token', 'user']).catch(() => undefined);
+    AsyncStorage.multiRemove(['token', 'user', ...AUTH_FORM_STORAGE_KEYS]).catch(
+      () => undefined
+    );
     set({
       user: null,
       token: null,

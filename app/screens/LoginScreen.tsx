@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -14,17 +13,20 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Eye, Lock, Mail, Sparkles } from 'lucide-react-native';
 
-import { useAuthStore } from '../store/authStore';
+import { clearAuthFormStorage, useAuthStore } from '../store/authStore';
 import { palette } from '../data/mockVibes';
 import { login } from '../services/authApi';
 
 export default function LoginScreen({ navigation }: any) {
-  const [email, setEmail] = useState('pratap@vibezone.app');
-  const [password, setPassword] = useState('vibezone');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const setAuth = useAuthStore((state) => state.setAuth);
+
+  React.useEffect(() => {
+    clearAuthFormStorage();
+  }, []);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -61,42 +63,22 @@ export default function LoginScreen({ navigation }: any) {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.hero}>
-          <View style={styles.blobOne} />
-          <View style={styles.blobTwo} />
-          <Sparkles color="#8B5CF6" size={24} style={styles.sparkle} />
-          <Text style={styles.logo}>VibeZone</Text>
-          <Text style={styles.tagline}>Share your vibe. Connect your world.</Text>
-          <View style={styles.avatarRow}>
-            {[
-              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
-              'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80',
-              'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=120&q=80',
-            ].map((uri) => (
-              <Image key={uri} source={{ uri }} style={styles.miniAvatar} />
-            ))}
-          </View>
-        </View>
+        <Text style={styles.logo}>VibeZone</Text>
 
         <View style={styles.form}>
-          <Text style={styles.smallTitle}>Login</Text>
-          <Text style={styles.title}>Welcome Back!</Text>
-          <Text style={styles.subtitle}>Login to continue your vibe</Text>
-
           <View style={styles.inputWrap}>
-            <Mail color="#8A91AD" size={18} />
             <TextInput
               style={styles.input}
-              placeholder="Email or Username"
+              placeholder="Email"
               placeholderTextColor="#9BA0B8"
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
+              keyboardType="email-address"
             />
           </View>
 
           <View style={styles.inputWrap}>
-            <Lock color="#8A91AD" size={18} />
             <TextInput
               style={styles.input}
               placeholder="Password"
@@ -105,7 +87,6 @@ export default function LoginScreen({ navigation }: any) {
               onChangeText={setPassword}
               secureTextEntry
             />
-            <Eye color="#8A91AD" size={18} />
           </View>
 
           <TouchableOpacity activeOpacity={0.85} onPress={handleLogin} disabled={loading}>
@@ -134,90 +115,19 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    padding: 20,
     justifyContent: 'center',
-    gap: 18,
-  },
-  hero: {
-    minHeight: 270,
-    borderRadius: 30,
-    overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#ECE8FF',
-  },
-  blobOne: {
-    position: 'absolute',
-    width: 170,
-    height: 170,
-    borderRadius: 85,
-    backgroundColor: '#DDD6FE',
-    top: -70,
-    left: -45,
-  },
-  blobTwo: {
-    position: 'absolute',
-    width: 190,
-    height: 190,
-    borderRadius: 95,
-    backgroundColor: '#FBCFE8',
-    bottom: -85,
-    right: -70,
-  },
-  sparkle: {
-    position: 'absolute',
-    top: 30,
-    right: 30,
+    padding: 22,
   },
   logo: {
     color: palette.violet,
     fontSize: 46,
     fontWeight: '900',
     fontStyle: 'italic',
-  },
-  tagline: {
-    color: palette.ink,
-    fontSize: 15,
-    fontWeight: '600',
-    marginTop: 10,
     textAlign: 'center',
-  },
-  avatarRow: {
-    flexDirection: 'row',
-    marginTop: 24,
-  },
-  miniAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-    marginLeft: -6,
+    marginBottom: 26,
   },
   form: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#ECECFA',
-  },
-  smallTitle: {
-    color: palette.ink,
-    fontSize: 16,
-    fontWeight: '800',
-    marginBottom: 18,
-  },
-  title: {
-    color: palette.ink,
-    fontSize: 26,
-    fontWeight: '900',
-  },
-  subtitle: {
-    color: palette.muted,
-    marginTop: 5,
-    marginBottom: 22,
+    width: '100%',
   },
   inputWrap: {
     height: 56,

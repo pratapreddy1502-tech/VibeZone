@@ -17,17 +17,21 @@ import { AtSign, KeyRound, Lock, Mail } from 'lucide-react-native';
 
 import { palette } from '../data/mockVibes';
 import { requestEmailOtp, verifyRegister } from '../services/authApi';
-import { useAuthStore } from '../store/authStore';
+import { clearAuthFormStorage, useAuthStore } from '../store/authStore';
 
 export default function RegisterScreen({ navigation }: any) {
-  const [username, setUsername] = useState('pratap_dev');
-  const [email, setEmail] = useState('pratap@vibezone.app');
-  const [password, setPassword] = useState('vibezone');
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [devOtp, setDevOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const setAuth = useAuthStore((state) => state.setAuth);
+
+  React.useEffect(() => {
+    clearAuthFormStorage();
+  }, []);
 
   const handleSendOtp = async () => {
     if (!username.trim() || !email.trim()) {
@@ -95,12 +99,14 @@ export default function RegisterScreen({ navigation }: any) {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <Text style={styles.logo}>VibeZone</Text>
-        <Text style={styles.title}>Create Account</Text>
-        <Text style={styles.subtitle}>Start sharing your moments in a cleaner social space.</Text>
-
         <Field icon={<AtSign color="#8A91AD" size={18} />} placeholder="Username" value={username} onChangeText={setUsername} />
-        <Field icon={<Mail color="#8A91AD" size={18} />} placeholder="Email" value={email} onChangeText={setEmail} />
+        <Field
+          icon={<Mail color="#8A91AD" size={18} />}
+          placeholder="Email"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+        />
         <Field
           icon={<Lock color="#8A91AD" size={18} />}
           placeholder="Password"
@@ -195,27 +201,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 22,
-  },
-  logo: {
-    color: palette.violet,
-    fontSize: 42,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    marginBottom: 26,
-  },
-  title: {
-    color: palette.ink,
-    fontSize: 28,
-    fontWeight: '900',
-    textAlign: 'center',
-  },
-  subtitle: {
-    color: palette.muted,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginTop: 8,
-    marginBottom: 26,
   },
   inputWrap: {
     height: 54,
