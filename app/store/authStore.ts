@@ -12,6 +12,14 @@ export const AUTH_FORM_STORAGE_KEYS = [
   'email',
   'username',
   'password',
+  'forgotPasswordEmail',
+  'resetPasswordEmail',
+  'resetPasswordOtp',
+  'newPassword',
+  'confirmPassword',
+  'savedEmail',
+  'savedLoginEmail',
+  'lastEmail',
 ];
 
 export function clearAuthFormStorage() {

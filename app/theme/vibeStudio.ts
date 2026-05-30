@@ -45,7 +45,6 @@ export const lightVibeThemes: VibeTheme[] = [
     buttonGradient: ['#A855F7', '#7C3AED'],
     feedGradient: ['#EDE7FF', '#F8D8FF'],
     glow: 'rgba(139, 92, 246, 0.26)',
-    previewImage: 'https://images.unsplash.com/photo-1496861083958-175bb1bd5702?auto=format&fit=crop&w=900&q=85',
   },
   {
     id: 'cotton-candy',
@@ -67,7 +66,6 @@ export const lightVibeThemes: VibeTheme[] = [
     buttonGradient: ['#FB7185', '#EC4899'],
     feedGradient: ['#FFE4F2', '#FBE7FF'],
     glow: 'rgba(244, 114, 182, 0.26)',
-    previewImage: 'https://images.unsplash.com/photo-1529636798458-92182e662485?auto=format&fit=crop&w=900&q=85',
   },
   {
     id: 'ocean-breeze',
@@ -89,7 +87,6 @@ export const lightVibeThemes: VibeTheme[] = [
     buttonGradient: ['#38BDF8', '#2563EB'],
     feedGradient: ['#DDF4FF', '#BFE7FF'],
     glow: 'rgba(56, 189, 248, 0.26)',
-    previewImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=85',
   },
   {
     id: 'mint-fresh',
@@ -111,7 +108,6 @@ export const lightVibeThemes: VibeTheme[] = [
     buttonGradient: ['#34D399', '#10B981'],
     feedGradient: ['#DDFBE8', '#F3FFF7'],
     glow: 'rgba(52, 211, 153, 0.24)',
-    previewImage: 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?auto=format&fit=crop&w=900&q=85',
   },
   {
     id: 'peach-glow',
@@ -133,7 +129,6 @@ export const lightVibeThemes: VibeTheme[] = [
     buttonGradient: ['#FB923C', '#F97316'],
     feedGradient: ['#FFE2C7', '#FFD6D6'],
     glow: 'rgba(251, 146, 60, 0.25)',
-    previewImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=85',
   },
 ];
 
@@ -158,7 +153,6 @@ export const darkVibeThemes: VibeTheme[] = [
     buttonGradient: ['#A855F7', '#6D28D9'],
     feedGradient: ['#240B46', '#05020D'],
     glow: 'rgba(168, 85, 247, 0.42)',
-    previewImage: 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?auto=format&fit=crop&w=900&q=85',
   },
   {
     id: 'soft-dream',
@@ -180,7 +174,6 @@ export const darkVibeThemes: VibeTheme[] = [
     buttonGradient: ['#F472B6', '#BE185D'],
     feedGradient: ['#3B1736', '#160914'],
     glow: 'rgba(244, 114, 182, 0.38)',
-    previewImage: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=85',
   },
   {
     id: 'midnight-rain',
@@ -202,7 +195,6 @@ export const darkVibeThemes: VibeTheme[] = [
     buttonGradient: ['#3B82F6', '#1D4ED8'],
     feedGradient: ['#0B2447', '#020817'],
     glow: 'rgba(59, 130, 246, 0.36)',
-    previewImage: 'https://images.unsplash.com/photo-1519692933481-e162a57d6721?auto=format&fit=crop&w=900&q=85',
   },
   {
     id: 'cyber-punk',
@@ -224,7 +216,6 @@ export const darkVibeThemes: VibeTheme[] = [
     buttonGradient: ['#06B6D4', '#7C3AED'],
     feedGradient: ['#073B4C', '#13052B'],
     glow: 'rgba(6, 182, 212, 0.4)',
-    previewImage: 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?auto=format&fit=crop&w=900&q=85',
   },
   {
     id: 'sunset-haze',
@@ -246,7 +237,6 @@ export const darkVibeThemes: VibeTheme[] = [
     buttonGradient: ['#FB923C', '#C2410C'],
     feedGradient: ['#4A1607', '#120604'],
     glow: 'rgba(251, 146, 60, 0.38)',
-    previewImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=85',
   },
 ];
 

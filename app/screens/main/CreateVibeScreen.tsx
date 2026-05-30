@@ -33,7 +33,6 @@ import {
 import AppVideo from '../../components/AppVideo';
 import { useVibes } from '../../context/VibesContext';
 import { palette } from '../../data/mockVibes';
-import { resolveProfileImage } from '../../services/avatar';
 import { uploadPost } from '../../services/postApi';
 import { reelToVibe, uploadReel } from '../../services/reelApi';
 import {
@@ -53,8 +52,6 @@ const filterOptions = [
 ];
 
 const speedOptions = [0.5, 1, 1.5, 2];
-const reelCoverFallback =
-  'https://images.unsplash.com/photo-1520045892732-304bc3ac5d8e?auto=format&fit=crop&w=900&q=85';
 
 export default function CreateVibeScreen({ navigation }: any) {
   const { addVibe } = useVibes();
@@ -160,61 +157,40 @@ export default function CreateVibeScreen({ navigation }: any) {
       const finalCaption = caption.trim() || (isReel ? 'Sharing my latest movement.' : 'Sharing my latest vibe.');
       const finalMusic = musicTitle.trim() || `Original Audio - ${user?.username || 'VibeZone'}`;
 
-      if (token) {
-        const uploaded = isReel
-          ? reelToVibe(
-              await uploadReel(finalCaption, mediaUri, token, {
-                fileName: mediaFileName,
-                mimeType: mediaMimeType,
-              })
-            )
-          : await uploadPost(finalCaption, mediaUri, token, {
+      if (!token) {
+        Alert.alert('Create Vibe', 'Please log in again before uploading.');
+        return;
+      }
+
+      const uploaded = isReel
+        ? reelToVibe(
+            await uploadReel(finalCaption, mediaUri, token, {
               fileName: mediaFileName,
               mimeType: mediaMimeType,
-            });
-        addVibe({
-          ...uploaded,
-          image: isReel ? coverUri || reelCoverFallback : uploaded.image,
-          videoUri: isReel ? uploaded.videoUri || mediaUri : undefined,
-          music: finalMusic,
-          mediaType: mode,
-          editMeta: {
-            filter: selectedFilter.name,
-            overlayText,
-            musicTitle: finalMusic,
-            trimStart,
-            trimEnd,
-            speed,
-            muted,
-            coverUri,
-          },
-        });
-      } else {
-        addVibe({
-          id: Date.now().toString(),
-          username: user?.username || 'pratap_dev',
-          avatar: resolveProfileImage(user?.profile_image, user?.id, user?.username),
-          image: isReel ? coverUri || reelCoverFallback : mediaUri,
-          videoUri: isReel ? mediaUri : undefined,
-          caption: finalCaption,
-          music: finalMusic,
-          likes: 0,
-          comments: 0,
-          shares: 0,
-          place: isReel ? 'Movement Studio' : 'Photo Studio',
-          mediaType: mode,
-          editMeta: {
-            filter: selectedFilter.name,
-            overlayText,
-            musicTitle: finalMusic,
-            trimStart,
-            trimEnd,
-            speed,
-            muted,
-            coverUri,
-          },
-        });
-      }
+            })
+          )
+        : await uploadPost(finalCaption, mediaUri, token, {
+            fileName: mediaFileName,
+            mimeType: mediaMimeType,
+          });
+
+      addVibe({
+        ...uploaded,
+        image: isReel ? coverUri || uploaded.image : uploaded.image,
+        videoUri: isReel ? uploaded.videoUri : undefined,
+        music: finalMusic,
+        mediaType: mode,
+        editMeta: {
+          filter: selectedFilter.name,
+          overlayText,
+          musicTitle: finalMusic,
+          trimStart,
+          trimEnd,
+          speed,
+          muted,
+          coverUri,
+        },
+      });
 
       setCaption('');
       resetEditor(mode);

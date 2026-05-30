@@ -62,7 +62,7 @@ from models.user_vibe import UserVibe
 from models.connection_request import ConnectionRequest
 
 from schemas.user_schema import UserCreate, UserUpdate, LoginData
-from schemas.user_schema import EmailOtpRequest, VerifyRegisterData
+from schemas.user_schema import EmailOtpRequest, PasswordResetData, PasswordResetRequest, VerifyRegisterData
 from schemas.post_schema import PostCreate
 
 from auth import (
@@ -348,6 +348,7 @@ app = fastapi_app
 ensure_storage_dirs()
 app.mount("/uploads", StaticFiles(directory=str(STORAGE_ROOT)), name="uploads")
 EMAIL_OTP_STORE = {}
+PASSWORD_RESET_OTP_STORE = {}
 OTP_EXPIRY_MINUTES = 10
 sio = socketio.AsyncServer(
     async_mode="asgi",
@@ -1397,6 +1398,72 @@ def verify_register(payload: VerifyRegisterData, db: Session = Depends(get_db)):
         "message": "User created successfully",
         "token": access_token,
         "user": user_payload(new_user)
+    }
+
+
+@app.post("/request-password-reset-otp")
+def request_password_reset_otp(payload: PasswordResetRequest, db: Session = Depends(get_db)):
+    email_key = payload.email.lower()
+    db_user = db.query(User).filter(User.email == payload.email).first()
+
+    if not db_user:
+        raise HTTPException(status_code=404, detail="No account found with this email")
+
+    otp = f"{secrets.randbelow(1000000):06d}"
+    PASSWORD_RESET_OTP_STORE[email_key] = {
+        "otp": otp,
+        "expires_at": datetime.utcnow() + timedelta(minutes=OTP_EXPIRY_MINUTES),
+        "attempts": 0
+    }
+
+    sent = send_otp_email(payload.email, otp)
+    response = {
+        "message": "Password reset code sent to your email"
+        if sent
+        else "Password reset code generated. Configure SMTP to send real emails."
+    }
+
+    if not sent:
+        response["dev_otp"] = otp
+
+    return response
+
+
+@app.post("/reset-password")
+def reset_password(payload: PasswordResetData, db: Session = Depends(get_db)):
+    email_key = payload.email.lower()
+    record = PASSWORD_RESET_OTP_STORE.get(email_key)
+
+    if not record:
+        raise HTTPException(status_code=400, detail="Request a password reset code first")
+
+    if datetime.utcnow() > record["expires_at"]:
+        del PASSWORD_RESET_OTP_STORE[email_key]
+        raise HTTPException(status_code=400, detail="Password reset code expired")
+
+    if record["otp"] != payload.otp.strip():
+        record["attempts"] += 1
+        if record["attempts"] >= 5:
+            del PASSWORD_RESET_OTP_STORE[email_key]
+        raise HTTPException(status_code=400, detail="Invalid password reset code")
+
+    db_user = db.query(User).filter(User.email == payload.email).first()
+
+    if not db_user:
+        del PASSWORD_RESET_OTP_STORE[email_key]
+        raise HTTPException(status_code=404, detail="No account found with this email")
+
+    db_user.password = hash_password(payload.new_password)
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+    del PASSWORD_RESET_OTP_STORE[email_key]
+
+    return {
+        "message": "Password reset successfully"
     }
 @app.post("/login")
 def login(user: LoginData, db: Session = Depends(get_db)):

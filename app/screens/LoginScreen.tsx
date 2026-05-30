@@ -25,7 +25,7 @@ export default function LoginScreen({ navigation }: any) {
   const setAuth = useAuthStore((state) => state.setAuth);
 
   React.useEffect(() => {
-    clearAuthFormStorage();
+    void clearAuthFormStorage();
   }, []);
 
   const handleLogin = async () => {
@@ -74,7 +74,11 @@ export default function LoginScreen({ navigation }: any) {
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="off"
+              importantForAutofill="no"
               keyboardType="email-address"
+              textContentType="none"
             />
           </View>
 
@@ -86,8 +90,20 @@ export default function LoginScreen({ navigation }: any) {
               value={password}
               onChangeText={setPassword}
               secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="off"
+              importantForAutofill="no"
+              textContentType="none"
             />
           </View>
+
+          <TouchableOpacity
+            style={styles.forgotButton}
+            onPress={() => navigation.navigate('ForgotPassword')}
+          >
+            <Text style={styles.forgotText}>Forgot Password?</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity activeOpacity={0.85} onPress={handleLogin} disabled={loading}>
             <LinearGradient colors={['#8B5CF6', '#3882F6']} style={styles.loginButton}>
@@ -150,12 +166,23 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
+    marginTop: 6,
   },
   loginText: {
     color: '#FFFFFF',
     fontWeight: '800',
     fontSize: 16,
+  },
+  forgotButton: {
+    alignSelf: 'flex-end',
+    paddingVertical: 4,
+    marginTop: -4,
+    marginBottom: 8,
+  },
+  forgotText: {
+    color: palette.violet,
+    fontSize: 13,
+    fontWeight: '800',
   },
   footer: {
     color: palette.muted,

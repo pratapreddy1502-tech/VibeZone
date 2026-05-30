@@ -2,9 +2,6 @@ import { AppVibe, resolveMediaUrl } from './postApi';
 import { resolveProfileImage } from './avatar';
 import { apiErrorMessage, apiRequest, fetchApi } from './api';
 
-const fallbackCover =
-  'https://images.unsplash.com/photo-1520045892732-304bc3ac5d8e?auto=format&fit=crop&w=900&q=85';
-
 export type Reel = {
   id: number;
   user_id: number;
@@ -86,13 +83,15 @@ export function normalizeReel(reel: any): Reel {
   const userId = Number(reel.user_id ?? reel.user?.id);
   const username = reel.username || reel.user?.username || 'vibezone';
 
+  const videoUrl = resolveMediaUrl(reel.video_url || reel.videoUri);
+
   return {
     id: Number(reel.id ?? reel.reel_id),
     user_id: userId,
     username,
     profile_image: resolveProfileImage(reel.profile_image ?? reel.user?.profile_image, userId, username),
     caption: reel.caption || '',
-    video_url: resolveMediaUrl(reel.video_url || reel.videoUri),
+    video_url: videoUrl,
     media_type: 'reel',
     resonates_count: Number(reel.resonates_count ?? reel.likes_count ?? 0),
     likes_count: Number(reel.likes_count ?? reel.resonates_count ?? 0),
@@ -109,17 +108,16 @@ export function reelToVibe(reel: Reel): AppVibe {
     userId: reel.user_id,
     username: reel.username,
     avatar: resolveProfileImage(reel.profile_image, reel.user_id, reel.username),
-    image: fallbackCover,
+    image: '',
     videoUri: reel.video_url,
-    caption: reel.caption || 'Sharing a new reel.',
-    music: `Original Audio - ${reel.username}`,
+    caption: reel.caption || '',
+    music: '',
     likes: reel.likes_count,
     comments: reel.comments_count,
     shares: reel.shares_count,
-    place: 'Reel Studio',
+    place: '',
     mediaType: 'reel',
     editMeta: {
-      coverUri: fallbackCover,
       muted: true,
       speed: 1,
     },
@@ -127,10 +125,10 @@ export function reelToVibe(reel: Reel): AppVibe {
 }
 
 export async function getReels(token?: string) {
-  const data = await apiRequest('/reels', 'GET', undefined, token, 3500);
+  const data = await apiRequest('/reels', 'GET', undefined, token);
   const reels = Array.isArray(data) ? data : data?.reels || [];
 
-  return reels.map(normalizeReel);
+  return reels.map(normalizeReel).filter((reel: Reel) => Boolean(reel.video_url));
 }
 
 export async function likeReel(reelId: number, token: string) {

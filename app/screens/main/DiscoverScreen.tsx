@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,71 +9,91 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { SlidersHorizontal, Search } from 'lucide-react-native';
+import { Search, SlidersHorizontal } from 'lucide-react-native';
 
-import { discoverCards, palette } from '../../data/mockVibes';
-import { resolveProfileImage } from '../../services/avatar';
-import { getUsers, ProfileUser } from '../../services/profileApi';
+import AppVideo from '../../components/AppVideo';
+import { palette } from '../../data/mockVibes';
+import { getReels, Reel } from '../../services/reelApi';
 import { useAuthStore } from '../../store/authStore';
 
-const chips = ['All', 'Trending', 'Nature', 'Art', 'Travel', 'Music'];
-function formatCount(value: number) {
-  if (value >= 1000) {
-    return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}K`;
-  }
-
-  return String(value);
-}
+const chips = ['All', 'Recent', 'Popular'];
 
 export default function DiscoverScreen({ navigation }: any) {
   const token = useAuthStore((state) => state.token);
-  const [creators, setCreators] = useState<ProfileUser[]>([]);
-  const [loadingCreators, setLoadingCreators] = useState(true);
   const [query, setQuery] = useState('');
+  const [reels, setReels] = useState<Reel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const openCreate = () => {
+    const parent = navigation.getParent?.();
+    if (parent) {
+      parent.navigate('Create');
+      return;
+    }
+
+    navigation.navigate('Create');
+  };
+
+  const openReels = () => {
+    const parent = navigation.getParent?.();
+    if (parent) {
+      parent.navigate('Reels');
+      return;
+    }
+
+    navigation.navigate('Reels');
+  };
 
   useEffect(() => {
     let active = true;
 
-    async function loadCreators() {
-      if (!token) {
-        setCreators([]);
-        setLoadingCreators(false);
-        return;
-      }
+    async function loadReels() {
+      setLoading(true);
 
       try {
-        const data = await getUsers(token);
+        const data = await getReels(token || undefined);
+
         if (active) {
-          setCreators(data.users);
+          setReels(data);
         }
       } catch {
         if (active) {
-          setCreators([]);
+          setReels([]);
         }
       } finally {
         if (active) {
-          setLoadingCreators(false);
+          setLoading(false);
         }
       }
     }
 
-    loadCreators();
+    loadReels();
 
     return () => {
       active = false;
     };
   }, [token]);
 
-  const filteredCreators = creators.filter((person) =>
-    person.username.toLowerCase().includes(query.trim().toLowerCase())
-  );
+  const filteredReels = useMemo(() => {
+    const value = query.trim().toLowerCase();
+
+    if (!value) {
+      return reels;
+    }
+
+    return reels.filter((reel) =>
+      `${reel.username} ${reel.caption}`.toLowerCase().includes(value)
+    );
+  }, [query, reels]);
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <Text style={styles.title}>Discover</Text>
-          <TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.82}
+            onPress={openCreate}
+          >
             <Text style={styles.arrow}>+</Text>
           </TouchableOpacity>
         </View>
@@ -83,7 +102,7 @@ export default function DiscoverScreen({ navigation }: any) {
           <Search color="#8A91AD" size={18} />
           <TextInput
             style={styles.input}
-            placeholder="Search vibes, people, places..."
+            placeholder="Search videos..."
             placeholderTextColor="#8A91AD"
             value={query}
             onChangeText={setQuery}
@@ -100,64 +119,45 @@ export default function DiscoverScreen({ navigation }: any) {
         </ScrollView>
 
         <View style={styles.rowHeader}>
-          <Text style={styles.sectionTitle}>Trending Vibes</Text>
-          <Text style={styles.seeAll}>See all</Text>
-        </View>
-        <View style={styles.cardRow}>
-          {discoverCards.map((card) => (
-            <TouchableOpacity key={card.title} style={styles.trendCard}>
-              <Image source={{ uri: card.image }} style={styles.trendImage} />
-              <View style={styles.trendOverlay} />
-              <Text style={styles.trendTitle}>{card.title}</Text>
-              <Text style={styles.trendMeta}>{card.meta}</Text>
-            </TouchableOpacity>
-          ))}
+          <Text style={styles.sectionTitle}>Videos</Text>
         </View>
 
-        <View style={styles.rowHeader}>
-          <Text style={styles.sectionTitle}>Suggested Creators</Text>
-          <Text style={styles.seeAll}>See all</Text>
-        </View>
-        {loadingCreators ? (
-          <View style={styles.creatorLoader}>
+        {loading ? (
+          <View style={styles.loader}>
             <ActivityIndicator color={palette.violet} />
           </View>
-        ) : filteredCreators.length ? (
-          filteredCreators.map((person) => (
-            <TouchableOpacity
-              key={person.id}
-              style={styles.creator}
-              activeOpacity={0.78}
-              onPress={() => navigation.navigate('Profile', { userId: person.id })}
-            >
-              <Image
-                source={{ uri: resolveProfileImage(person.profile_image, person.id, person.username) }}
-                style={styles.creatorAvatar}
-              />
-              <View style={styles.creatorCopy}>
-                <Text style={styles.creatorName}>@{person.username}</Text>
-                <Text style={styles.creatorMeta} numberOfLines={1}>
-                  {person.bio || person.full_name || 'VibeZone creator'}
-                </Text>
-                <Text style={styles.creatorCount}>
-                  {formatCount(person.vibers_count || 0)} Vibers
-                </Text>
-              </View>
-              <View style={styles.follow}>
-                <Text style={styles.followText}>
-                  {person.connection_status === 'accepted'
-                    ? 'Connected'
-                    : person.connection_status === 'pending'
-                      ? 'Request Sent'
-                      : 'View'}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))
+        ) : filteredReels.length ? (
+          <View style={styles.videoGrid}>
+            {filteredReels.map((reel) => (
+              <TouchableOpacity
+                key={reel.id}
+                style={styles.videoCard}
+                activeOpacity={0.88}
+                onPress={openReels}
+              >
+                <AppVideo
+                  uri={reel.video_url}
+                  style={styles.video}
+                  shouldPlay={false}
+                  isLooping
+                  isMuted
+                />
+                <View style={styles.videoShade} />
+                <View style={styles.videoCopy}>
+                  <Text style={styles.videoTitle} numberOfLines={2}>
+                    {reel.caption || 'Untitled reel'}
+                  </Text>
+                  <Text style={styles.videoMeta} numberOfLines={1}>
+                    @{reel.username}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
         ) : (
-          <View style={styles.emptyCreators}>
-            <Text style={styles.emptyTitle}>No creators found</Text>
-            <Text style={styles.emptyText}>Profiles from PostgreSQL will appear here.</Text>
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyTitle}>No videos yet</Text>
+            <Text style={styles.emptyText}>Upload your first reel</Text>
           </View>
         )}
       </ScrollView>
@@ -228,9 +228,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   rowHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginTop: 6,
     marginBottom: 12,
   },
@@ -239,115 +236,65 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '900',
   },
-  seeAll: {
-    color: palette.violet,
-    fontSize: 12,
-    fontWeight: '800',
+  loader: {
+    minHeight: 220,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  cardRow: {
-    flexDirection: 'row',
-    gap: 10,
+  videoGrid: {
+    gap: 12,
   },
-  trendCard: {
-    flex: 1,
-    height: 112,
-    borderRadius: 8,
+  videoCard: {
+    height: 260,
+    borderRadius: 14,
     overflow: 'hidden',
-    justifyContent: 'flex-end',
-    padding: 10,
+    backgroundColor: '#111827',
   },
-  trendImage: {
-    ...StyleSheet.absoluteFillObject,
+  video: {
     width: '100%',
     height: '100%',
   },
-  trendOverlay: {
+  videoShade: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(10, 14, 45, 0.35)',
+    backgroundColor: 'rgba(9, 13, 40, 0.24)',
   },
-  trendTitle: {
+  videoCopy: {
+    position: 'absolute',
+    left: 14,
+    right: 14,
+    bottom: 14,
+  },
+  videoTitle: {
     color: '#FFFFFF',
+    fontSize: 16,
     fontWeight: '900',
-    fontSize: 13,
   },
-  trendMeta: {
+  videoMeta: {
     color: '#FFFFFF',
-    fontSize: 11,
-    marginTop: 2,
+    fontSize: 12,
+    fontWeight: '800',
+    marginTop: 5,
   },
-  creator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 10,
+  emptyState: {
+    minHeight: 220,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: '#ECECFA',
-    marginBottom: 9,
-  },
-  creatorLoader: {
-    minHeight: 120,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  creatorAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-  },
-  creatorCopy: {
-    flex: 1,
-    marginLeft: 10,
-  },
-  creatorName: {
-    color: palette.ink,
-    fontWeight: '900',
-  },
-  creatorMeta: {
-    color: palette.muted,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  creatorCount: {
-    color: palette.violet,
-    fontSize: 11,
-    fontWeight: '900',
-    marginTop: 4,
-  },
-  follow: {
-    borderWidth: 1,
-    borderColor: palette.violet,
-    borderRadius: 8,
-    minWidth: 96,
-    paddingVertical: 7,
-    alignItems: 'center',
-  },
-  followText: {
-    color: palette.violet,
-    fontSize: 12,
-    fontWeight: '900',
-  },
-  connection: {
-    backgroundColor: palette.violet,
-  },
-  connectionText: {
-    color: '#FFFFFF',
-  },
-  emptyCreators: {
-    minHeight: 130,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 18,
+    padding: 22,
   },
   emptyTitle: {
     color: palette.ink,
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '900',
   },
   emptyText: {
     color: palette.muted,
-    fontSize: 12,
-    marginTop: 6,
+    fontSize: 13,
+    fontWeight: '800',
+    marginTop: 8,
     textAlign: 'center',
   },
 });

@@ -25,17 +25,16 @@ export default function RegisterScreen({ navigation }: any) {
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
-  const [devOtp, setDevOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const setAuth = useAuthStore((state) => state.setAuth);
 
   React.useEffect(() => {
-    clearAuthFormStorage();
+    void clearAuthFormStorage();
   }, []);
 
   const handleSendOtp = async () => {
-    if (!username.trim() || !email.trim()) {
-      Alert.alert('Create Account', 'Fill in username and email.');
+    if (!username.trim() || !email.trim() || !password.trim()) {
+      Alert.alert('Create Account', 'Fill in username, email, and password.');
       return;
     }
 
@@ -47,12 +46,11 @@ export default function RegisterScreen({ navigation }: any) {
       });
       const code = response?.dev_otp ? String(response.dev_otp) : '';
 
-      setDevOtp(code);
       setOtpSent(true);
       Alert.alert(
         'Verification Code',
         code
-          ? `Use this development OTP: ${code}`
+          ? `Use this OTP: ${code}`
           : 'Check your email for the verification code.'
       );
     } catch (error: any) {
@@ -125,7 +123,6 @@ export default function RegisterScreen({ navigation }: any) {
               keyboardType="number-pad"
               maxLength={6}
             />
-            {devOtp ? <Text style={styles.devOtp}>Development OTP: {devOtp}</Text> : null}
           </>
         ) : null}
 
@@ -150,14 +147,13 @@ export default function RegisterScreen({ navigation }: any) {
             onPress={() => {
               setOtpSent(false);
               setOtp('');
-              setDevOtp('');
             }}
           >
             <Text style={styles.resend}>Change email or resend OTP</Text>
           </TouchableOpacity>
         ) : null}
 
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
           <Text style={styles.footer}>Already have an account? <Text style={styles.link}>Log In</Text></Text>
         </TouchableOpacity>
       </KeyboardAvoidingView>
@@ -187,6 +183,10 @@ function Field(props: {
         keyboardType={props.keyboardType}
         maxLength={props.maxLength}
         autoCapitalize="none"
+        autoCorrect={false}
+        autoComplete="off"
+        importantForAutofill="no"
+        textContentType="none"
       />
     </View>
   );
@@ -229,12 +229,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '900',
     fontSize: 16,
-  },
-  devOtp: {
-    color: palette.violet,
-    fontWeight: '800',
-    marginBottom: 8,
-    textAlign: 'center',
   },
   resend: {
     color: palette.violet,

@@ -40,10 +40,10 @@ export default function VibeCard({
   videoUri,
   caption,
   likes,
-  comments = 16,
-  shares = 24,
-  place = 'Goa, India',
-  music = 'Original Audio - VibeZone',
+  comments = 0,
+  shares = 0,
+  place = '',
+  music = '',
   mediaType = 'photo',
   editMeta,
   onOpenProfile,
@@ -72,7 +72,7 @@ export default function VibeCard({
           disabled={!userId}
         >
           <Text style={styles.username}>{username}</Text>
-          <Text style={styles.place}>{place}</Text>
+          {place ? <Text style={styles.place}>{place}</Text> : null}
         </TouchableOpacity>
         <MoreHorizontal color={palette.ink} size={24} />
       </View>
@@ -129,8 +129,8 @@ export default function VibeCard({
       </View>
 
       <Text style={styles.caption}>{caption}</Text>
-      <Text style={styles.responses}>View all {comments} responses</Text>
-      <Text style={styles.music}>{music}</Text>
+      {comments ? <Text style={styles.responses}>View all {comments} responses</Text> : null}
+      {music ? <Text style={styles.music}>{music}</Text> : null}
     </View>
   );
 }

@@ -11,7 +11,7 @@ import StoryViewer from '../../components/StoryViewer';
 import VibeStudioSheet from '../../components/VibeStudioSheet';
 import VibeCard from '../../components/VibeCard';
 import { useVibes } from '../../context/VibesContext';
-import { palette, posts } from '../../data/mockVibes';
+import { palette } from '../../data/mockVibes';
 import { resolveProfileImage } from '../../services/avatar';
 import { getNotifications } from '../../services/notificationApi';
 import { AppVibe, getFeed } from '../../services/postApi';
@@ -29,6 +29,7 @@ export default function VibesScreen({ navigation }: any) {
   const theme = useThemeStore((state) => state.theme);
   const loadTheme = useThemeStore((state) => state.loadTheme);
   const [remoteVibes, setRemoteVibes] = useState<AppVibe[]>([]);
+  const [feedLoading, setFeedLoading] = useState(false);
   const [studioVisible, setStudioVisible] = useState(false);
   const [storyGroups, setStoryGroups] = useState<StoryGroup[]>([]);
   const [storiesLoading, setStoriesLoading] = useState(false);
@@ -36,7 +37,22 @@ export default function VibesScreen({ navigation }: any) {
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerGroupIndex, setViewerGroupIndex] = useState(0);
   const [viewedStoryIds, setViewedStoryIds] = useState<Set<number>>(new Set<number>());
-  const feed = [...vibes, ...remoteVibes, ...posts];
+  const feed = useMemo(() => {
+    const seenIds = new Set<string>();
+
+    return [...vibes, ...remoteVibes].filter((vibe) => {
+      if (!vibe.image && !vibe.videoUri) {
+        return false;
+      }
+
+      if (seenIds.has(vibe.id)) {
+        return false;
+      }
+
+      seenIds.add(vibe.id);
+      return true;
+    });
+  }, [remoteVibes, vibes]);
   const viewedStoryKey = user?.id ? `vibezone:viewed-stories:${user.id}` : null;
   const myAvatar = resolveProfileImage(user?.profile_image, user?.id, user?.username);
   const storyGroupsForViewer = useMemo(() => {
@@ -223,8 +239,12 @@ export default function VibesScreen({ navigation }: any) {
 
     async function loadFeed() {
       if (!user?.id) {
+        setRemoteVibes([]);
+        setFeedLoading(false);
         return;
       }
+
+      setFeedLoading(true);
 
       try {
         const data = await getFeed(user.id);
@@ -234,6 +254,10 @@ export default function VibesScreen({ navigation }: any) {
       } catch (error) {
         if (active) {
           setRemoteVibes([]);
+        }
+      } finally {
+        if (active) {
+          setFeedLoading(false);
         }
       }
     }
@@ -381,13 +405,24 @@ export default function VibesScreen({ navigation }: any) {
           })}
         </ScrollView>
 
-        {feed.map((vibe) => (
-          <VibeCard
-            key={vibe.id}
-            {...vibe}
-            onOpenProfile={(userId) => navigation.navigate('Profile', { userId })}
-          />
-        ))}
+        {feedLoading ? (
+          <View style={styles.feedLoader}>
+            <ActivityIndicator color={theme.primary} />
+          </View>
+        ) : feed.length ? (
+          feed.map((vibe) => (
+            <VibeCard
+              key={vibe.id}
+              {...vibe}
+              onOpenProfile={(userId) => navigation.navigate('Profile', { userId })}
+            />
+          ))
+        ) : (
+          <View style={[styles.emptyFeed, { backgroundColor: theme.surface, borderColor: theme.line }]}>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>No vibes yet</Text>
+            <Text style={[styles.emptyText, { color: theme.muted }]}>Add your first vibe</Text>
+          </View>
+        )}
       </ScrollView>
       <VibeStudioSheet
         visible={studioVisible}
@@ -556,5 +591,29 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 6,
     maxWidth: 67,
+  },
+  feedLoader: {
+    minHeight: 180,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyFeed: {
+    minHeight: 180,
+    marginHorizontal: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 22,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  emptyText: {
+    fontSize: 13,
+    fontWeight: '800',
+    marginTop: 8,
+    textAlign: 'center',
   },
 });

@@ -35,6 +35,22 @@ export async function verifyRegister(data: {
   return apiRequest('/verify-register', 'POST', data);
 }
 
+export async function requestPasswordResetOtp(data: {
+  email: string;
+}) {
+  await checkBackendHealth();
+  return apiRequest('/request-password-reset-otp', 'POST', data);
+}
+
+export async function resetPassword(data: {
+  email: string;
+  otp: string;
+  new_password: string;
+}) {
+  await checkBackendHealth();
+  return apiRequest('/reset-password', 'POST', data);
+}
+
 export function getCurrentUser(token: string) {
   return apiRequest('/me', 'GET', undefined, token);
 }

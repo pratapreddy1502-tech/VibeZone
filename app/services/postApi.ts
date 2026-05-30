@@ -2,9 +2,6 @@ import { API_BASE_URL } from '../config/api';
 import { resolveProfileImage } from './avatar';
 import { apiErrorMessage, apiRequest, fetchApi } from './api';
 
-const fallbackImage =
-  'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=85';
-
 type UploadPostOptions = {
   fileName?: string | null;
   mimeType?: string | null;
@@ -65,23 +62,25 @@ function normalizePost(post: any, index = 0): AppVibe {
     userId,
     username,
     avatar: resolveProfileImage(post.profile_image ?? post.user?.profile_image, userId, username),
-    image: isVideo ? fallbackImage : mediaUrl || fallbackImage,
+    image: isVideo ? '' : mediaUrl,
     videoUri: isVideo ? mediaUrl : undefined,
-    caption: post.caption || 'Sharing a new vibe.',
-    music: post.music || 'Original Audio - VibeZone',
+    caption: post.caption || '',
+    music: post.music || '',
     likes: Number(post.resonates_count ?? post.likes_count ?? post.resonates ?? post.likes ?? 0),
     comments: Number(post.comments_count ?? post.comments ?? 0),
     shares: Number(post.shares_count ?? post.shares ?? 0),
-    place: post.place || 'From FastAPI',
+    place: post.place || '',
     mediaType: isVideo ? 'reel' : 'photo',
-    editMeta: isVideo ? { coverUri: fallbackImage } : undefined,
+    editMeta: isVideo ? {} : undefined,
   };
 }
 
 export async function getFeed(userId: number) {
   const data = await apiRequest(`/feed/${userId}`);
   const posts = Array.isArray(data) ? data : data?.vibes || data?.posts || [];
-  return posts.map((post: any, index: number) => normalizePost(post, index));
+  return posts
+    .map((post: any, index: number) => normalizePost(post, index))
+    .filter((post: AppVibe) => Boolean(post.videoUri || post.image));
 }
 
 function extensionFromMimeType(mimeType?: string | null) {

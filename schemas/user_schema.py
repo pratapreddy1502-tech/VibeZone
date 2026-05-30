@@ -40,6 +40,16 @@ class VerifyRegisterData(BaseModel):
         return value
 
 
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetData(BaseModel):
+    email: EmailStr
+    otp: str
+    new_password: str
+
+
 class UserUpdate(BaseModel):
     username: Optional[str]
     email: Optional[EmailStr]

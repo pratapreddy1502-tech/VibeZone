@@ -13,14 +13,15 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import CommentsScreen from '../screens/main/CommentsScreen';
 // Auth Screens
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
-
-// Removed ForgotPasswordScreen import because the file does not exist
 
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
+  ForgotPassword: undefined;
+  ResetPassword: undefined;
   Comments: undefined;
 };
 
@@ -43,6 +44,16 @@ export default function AuthNavigator() {
       <Stack.Screen
         name="Register"
         component={RegisterScreen}
+      />
+
+      <Stack.Screen
+        name="ForgotPassword"
+        component={ForgotPasswordScreen}
+      />
+
+      <Stack.Screen
+        name="ResetPassword"
+        component={ForgotPasswordScreen}
       />
 
       <Stack.Screen
