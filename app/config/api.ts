@@ -7,7 +7,7 @@ declare const process: {
 const API_PORT = 8000;
 const DEFAULT_PRODUCTION_API_BASE_URL = 'https://vibezone-mwg7.onrender.com';
 const env = typeof process !== 'undefined' ? process.env || {} : {};
-const isProductionApiMode = env.EXPO_PUBLIC_APP_ENV === 'production';
+const useLocalApiFallbacks = env.EXPO_PUBLIC_USE_LOCAL_API === 'true';
 const PRODUCTION_API_BASE_URLS = [
   env.EXPO_PUBLIC_API_BASE_URL,
   ...(env.EXPO_PUBLIC_API_BASE_URLS || '').split(','),
@@ -57,7 +57,7 @@ function getExpoDevHost() {
 }
 
 export function getApiBaseUrls() {
-  const expoHost = getExpoDevHost();
+  const expoHost = useLocalApiFallbacks ? getExpoDevHost() : null;
   const developmentUrls = [
     expoHost ? `http://${expoHost}:${API_PORT}` : null,
     ...MANUAL_API_BASE_URLS,
@@ -67,7 +67,7 @@ export function getApiBaseUrls() {
   ];
   const urls = [
     ...PRODUCTION_API_BASE_URLS,
-    ...(isProductionApiMode ? [] : developmentUrls),
+    ...(useLocalApiFallbacks ? developmentUrls : []),
   ].filter(Boolean) as string[];
 
   return [...new Set(urls)];

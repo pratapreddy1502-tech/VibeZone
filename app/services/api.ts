@@ -1,6 +1,6 @@
 import { getApiBaseUrls } from '../config/api';
 
-const API_TIMEOUT_MS = 12000;
+const API_TIMEOUT_MS = 30000;
 export const SESSION_EXPIRED_MESSAGE =
   'Your login session expired. Please log in again.';
 
