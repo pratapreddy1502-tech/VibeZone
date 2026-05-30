@@ -1,4 +1,4 @@
-import { NativeModules, Platform } from 'react-native';
+import { NativeModules } from 'react-native';
 
 declare const process: {
   env?: Record<string, string | undefined>;
@@ -8,6 +8,10 @@ const API_PORT = 8000;
 const DEFAULT_PRODUCTION_API_BASE_URL = 'https://vibezone-mwg7.onrender.com';
 const env = typeof process !== 'undefined' ? process.env || {} : {};
 const useLocalApiFallbacks = env.EXPO_PUBLIC_USE_LOCAL_API === 'true';
+const LOCAL_API_BASE_URLS = (env.EXPO_PUBLIC_LOCAL_API_BASE_URLS || '')
+  .split(',')
+  .map((url) => url.trim().replace(/\/$/, ''))
+  .filter(Boolean);
 const PRODUCTION_API_BASE_URLS = [
   env.EXPO_PUBLIC_API_BASE_URL,
   ...(env.EXPO_PUBLIC_API_BASE_URLS || '').split(','),
@@ -15,15 +19,6 @@ const PRODUCTION_API_BASE_URLS = [
 ]
   .map((url) => url?.trim().replace(/\/$/, ''))
   .filter(Boolean) as string[];
-// Local FastAPI dev server uses HTTP. Do not change this to HTTPS unless
-// Uvicorn is running with SSL certificates.
-const MANUAL_API_BASE_URLS = [
-  'http://10.110.221.227:8000',
-  'http://172.18.9.227:8000',
-  'http://10.185.143.227:8000',
-  'http://10.222.99.227:8000',
-];
-
 function getHostFromUrl(url?: string | null) {
   if (!url) {
     return null;
@@ -60,10 +55,7 @@ export function getApiBaseUrls() {
   const expoHost = useLocalApiFallbacks ? getExpoDevHost() : null;
   const developmentUrls = [
     expoHost ? `http://${expoHost}:${API_PORT}` : null,
-    ...MANUAL_API_BASE_URLS,
-    Platform.OS === 'android' ? `http://10.0.2.2:${API_PORT}` : null,
-    `http://127.0.0.1:${API_PORT}`,
-    `http://localhost:${API_PORT}`,
+    ...LOCAL_API_BASE_URLS,
   ];
   const urls = [
     ...PRODUCTION_API_BASE_URLS,
