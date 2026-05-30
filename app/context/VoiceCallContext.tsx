@@ -43,6 +43,7 @@ import {
 } from 'react-native-webrtc';
 
 import { getApiBaseUrls } from '../config/api';
+import { getWebRtcPeerConfig } from '../config/webrtc';
 import { palette } from '../data/mockVibes';
 import { resolveProfileImage } from '../services/avatar';
 import { ChatUser } from '../services/messageApi';
@@ -85,10 +86,6 @@ const VoiceCallContext = createContext<VoiceCallContextValue>({
   startVoiceCall: async () => undefined,
   startVideoCall: async () => undefined,
 });
-
-const peerConfig = {
-  iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-};
 
 function normalizeCallType(value?: string): CallType {
   return value === 'video' ? 'video' : 'voice';
@@ -269,7 +266,7 @@ export function VoiceCallProvider({ children }: { children: React.ReactNode }) {
     }
 
     const stream = await ensureLocalStream(call.callType);
-    const peer = new RTCPeerConnection(peerConfig);
+    const peer = new RTCPeerConnection(getWebRtcPeerConfig());
     const receiverId = targetUserId(call);
     peerRef.current = peer;
 
