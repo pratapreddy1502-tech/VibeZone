@@ -8,9 +8,20 @@ from settings import load_env_file
 
 load_env_file()
 
+def default_database_url():
+    if (
+        os.getenv("RENDER")
+        or os.getenv("RENDER_SERVICE_ID")
+        or os.getenv("RENDER_EXTERNAL_URL")
+    ):
+        return "sqlite:////tmp/vibezone.db"
+
+    return "sqlite:///./vibezone.db"
+
+
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    os.getenv("VIBEZONE_DATABASE_URL", "sqlite:///./vibezone.db")
+    os.getenv("VIBEZONE_DATABASE_URL", default_database_url())
 )
 
 if DATABASE_URL.startswith("postgres://"):
