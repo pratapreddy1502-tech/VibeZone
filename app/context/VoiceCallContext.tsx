@@ -31,16 +31,8 @@ import {
   SwitchCamera,
   Volume2,
 } from 'lucide-react-native';
-import InCallManager from 'react-native-incall-manager';
 import { io, Socket } from 'socket.io-client';
-import {
-  mediaDevices,
-  MediaStream,
-  RTCPeerConnection,
-  RTCIceCandidate,
-  RTCSessionDescription,
-  RTCView,
-} from 'react-native-webrtc';
+import type { MediaStream, RTCPeerConnection } from 'react-native-webrtc';
 
 import { getApiBaseUrls } from '../config/api';
 import { getWebRtcPeerConfig } from '../config/webrtc';
@@ -48,6 +40,60 @@ import { palette } from '../data/mockVibes';
 import { resolveProfileImage } from '../services/avatar';
 import { ChatUser } from '../services/messageApi';
 import { useAuthStore } from '../store/authStore';
+
+declare const require: any;
+
+type NativeCallModule = {
+  mediaDevices?: {
+    getUserMedia: (constraints: Record<string, unknown>) => Promise<MediaStream>;
+  };
+  RTCPeerConnection?: new (config: Record<string, unknown>) => RTCPeerConnection;
+  RTCIceCandidate?: new (candidate: unknown) => unknown;
+  RTCSessionDescription?: new (description: unknown) => unknown;
+  RTCView?: React.ComponentType<any>;
+};
+
+type InCallManagerModule = {
+  start: (options?: Record<string, unknown>) => void;
+  stop: () => void;
+  setSpeakerphoneOn: (enabled: boolean) => void;
+};
+
+function loadNativeCallModule(): NativeCallModule {
+  try {
+    return require('react-native-webrtc');
+  } catch {
+    return {};
+  }
+}
+
+function loadInCallManager(): InCallManagerModule {
+  try {
+    const module = require('react-native-incall-manager');
+
+    return module.default || module;
+  } catch {
+    return {
+      start: () => undefined,
+      stop: () => undefined,
+      setSpeakerphoneOn: () => undefined,
+    };
+  }
+}
+
+const NativeCall = loadNativeCallModule();
+const InCallManager = loadInCallManager();
+const RTCView = (NativeCall.RTCView || (() => null)) as React.ComponentType<any>;
+
+function hasNativeCallSupport() {
+  return Boolean(
+    NativeCall.mediaDevices?.getUserMedia &&
+    NativeCall.RTCPeerConnection &&
+    NativeCall.RTCIceCandidate &&
+    NativeCall.RTCSessionDescription &&
+    NativeCall.RTCView
+  );
+}
 
 type CallType = 'voice' | 'video';
 type CallPhase = 'incoming' | 'outgoing' | 'connecting' | 'connected' | 'ended';
@@ -201,6 +247,10 @@ export function VoiceCallProvider({ children }: { children: React.ReactNode }) {
       return localStreamRef.current;
     }
 
+    if (!hasNativeCallSupport()) {
+      throw new Error('Voice and video calls need the installed VibeZone APK. Expo Go cannot run WebRTC calls.');
+    }
+
     const allowed = await requestMediaPermissions(callType);
 
     if (!allowed) {
@@ -209,7 +259,7 @@ export function VoiceCallProvider({ children }: { children: React.ReactNode }) {
         : 'Microphone permission is required for voice calls.');
     }
 
-    const stream = await mediaDevices.getUserMedia({
+    const stream = await NativeCall.mediaDevices!.getUserMedia({
       audio: true,
       video: callType === 'video'
         ? {
@@ -253,7 +303,7 @@ export function VoiceCallProvider({ children }: { children: React.ReactNode }) {
 
     for (const candidate of candidates) {
       try {
-        await peer.addIceCandidate(new RTCIceCandidate(candidate));
+        await peer.addIceCandidate(new NativeCall.RTCIceCandidate!(candidate) as any);
       } catch {
         // Ignore stale candidates from interrupted calls.
       }
@@ -266,7 +316,7 @@ export function VoiceCallProvider({ children }: { children: React.ReactNode }) {
     }
 
     const stream = await ensureLocalStream(call.callType);
-    const peer = new RTCPeerConnection(getWebRtcPeerConfig());
+    const peer = new NativeCall.RTCPeerConnection!(getWebRtcPeerConfig());
     const receiverId = targetUserId(call);
     peerRef.current = peer;
 
@@ -349,6 +399,14 @@ export function VoiceCallProvider({ children }: { children: React.ReactNode }) {
 
     if (callRef.current && callRef.current.phase !== 'ended') {
       Alert.alert('Call', 'You are already in a call.');
+      return;
+    }
+
+    if (!hasNativeCallSupport()) {
+      Alert.alert(
+        'Install VibeZone APK',
+        'Voice and video calls need the installed VibeZone APK. Expo Go cannot run WebRTC calls.'
+      );
       return;
     }
 
@@ -466,7 +524,7 @@ export function VoiceCallProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const peer = await ensurePeerConnection(nextCall);
-      await peer.setRemoteDescription(new RTCSessionDescription(payload.offer));
+      await peer.setRemoteDescription(new NativeCall.RTCSessionDescription!(payload.offer) as any);
       await flushPendingIce();
       const answer = await peer.createAnswer();
       await peer.setLocalDescription(answer);
@@ -490,7 +548,9 @@ export function VoiceCallProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      await peerRef.current?.setRemoteDescription(new RTCSessionDescription(payload.answer));
+      await peerRef.current?.setRemoteDescription(
+        new NativeCall.RTCSessionDescription!(payload.answer) as any
+      );
       await flushPendingIce();
       markConnected();
     } catch {
@@ -514,7 +574,7 @@ export function VoiceCallProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      await peer.addIceCandidate(new RTCIceCandidate(payload.candidate));
+      await peer.addIceCandidate(new NativeCall.RTCIceCandidate!(payload.candidate) as any);
     } catch {
       // Ignore stale ICE candidates from failed or ended calls.
     }
