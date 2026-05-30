@@ -8,6 +8,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
+        "EXPO_PUBLIC_APP_ENV": "development",
         "EXPO_PUBLIC_API_BASE_URL": "https://vibezone-mwg7.onrender.com"
       },
       "android": {
@@ -18,16 +19,28 @@
       "distribution": "internal",
       "channel": "preview",
       "env": {
+        "EXPO_PUBLIC_APP_ENV": "production",
         "EXPO_PUBLIC_API_BASE_URL": "https://vibezone-mwg7.onrender.com"
       },
       "android": {
         "buildType": "apk"
       }
     },
+    "previewAab": {
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "production",
+        "EXPO_PUBLIC_API_BASE_URL": "https://vibezone-mwg7.onrender.com"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
+    },
     "production": {
       "channel": "production",
       "autoIncrement": true,
       "env": {
+        "EXPO_PUBLIC_APP_ENV": "production",
         "EXPO_PUBLIC_API_BASE_URL": "https://vibezone-mwg7.onrender.com"
       }
     }
