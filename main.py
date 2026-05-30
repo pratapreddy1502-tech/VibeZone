@@ -30,7 +30,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from jose import JWTError, jwt
 from pydantic import BaseModel
 
@@ -1215,7 +1215,13 @@ def create_user_account(user, db: Session):
     if existing_email:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    hashed_password = hash_password(user.password)
+    try:
+        hashed_password = hash_password(user.password)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail="Could not secure password. Please try again."
+        ) from exc
 
     new_user = User(
         username=user.username,
@@ -1223,9 +1229,22 @@ def create_user_account(user, db: Session):
         password=hashed_password
     )
 
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    try:
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Username or email already exists"
+        ) from exc
+    except SQLAlchemyError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Could not create account. Please try again."
+        ) from exc
 
     return new_user
 
