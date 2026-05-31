@@ -1,6 +1,8 @@
 import {
   API_BASE_URL,
   API_TIMEOUT_MS,
+  API_WAKE_RETRY_COUNT,
+  API_WAKE_RETRY_DELAY_MS,
   SERVER_WAKE_MESSAGE,
 } from '../config/api';
 
@@ -9,6 +11,7 @@ export const SESSION_EXPIRED_MESSAGE =
 
 type ApiRequestInit = RequestInit & {
   timeoutMs?: number;
+  wakeRetries?: number;
 };
 
 function makeUrl(baseUrl: string, endpoint: string) {
@@ -86,47 +89,70 @@ function isNetworkError(error: unknown) {
   );
 }
 
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function fetchApi(
   endpoint: string,
   init: ApiRequestInit = {}
 ) {
-  const { timeoutMs = API_TIMEOUT_MS, ...requestInit } = init;
+  const {
+    timeoutMs = API_TIMEOUT_MS,
+    wakeRetries = 0,
+    ...requestInit
+  } = init;
   const requestTimeoutMs = Math.max(timeoutMs, API_TIMEOUT_MS);
   const requestUrl = makeUrl(API_BASE_URL, endpoint);
   const method = requestInit.method || 'GET';
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
 
   console.log(`[VibeZone API] ${method} ${requestUrl}`);
 
-  try {
-    const response = await fetch(requestUrl, {
-      ...requestInit,
-      signal: requestInit.signal || controller.signal,
-    });
-    const data = await readResponseData(response);
+  for (let attempt = 0; attempt <= wakeRetries; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
 
-    console.log(`[VibeZone API] ${response.status} ${requestUrl}`);
-    console.log('[VibeZone API] response body', logResponseBody(data));
+    try {
+      const response = await fetch(requestUrl, {
+        ...requestInit,
+        signal: requestInit.signal || controller.signal,
+      });
+      const data = await readResponseData(response);
 
-    return { response, data, baseUrl: API_BASE_URL };
-  } catch (error) {
-    console.error(`[VibeZone API] fetch exception ${requestUrl}`, error);
+      console.log(`[VibeZone API] ${response.status} ${requestUrl}`);
+      console.log('[VibeZone API] response body', logResponseBody(data));
 
-    if (!isNetworkError(error)) {
-      throw error;
+      return { response, data, baseUrl: API_BASE_URL };
+    } catch (error) {
+      console.error(`[VibeZone API] fetch exception ${requestUrl}`, error);
+
+      if (!isNetworkError(error)) {
+        throw error;
+      }
+
+      if (attempt < wakeRetries) {
+        const delay = API_WAKE_RETRY_DELAY_MS * (attempt + 1);
+        console.log(
+          `[VibeZone API] backend wake retry ${attempt + 1}/${wakeRetries} in ${delay}ms`
+        );
+        await wait(delay);
+        continue;
+      }
+
+      throw new Error(SERVER_WAKE_MESSAGE);
+    } finally {
+      clearTimeout(timeout);
     }
-
-    throw new Error(SERVER_WAKE_MESSAGE);
-  } finally {
-    clearTimeout(timeout);
   }
+
+  throw new Error(SERVER_WAKE_MESSAGE);
 }
 
 export async function checkBackendHealth() {
-  const { response } = await fetchApi('/', {
+  const { response } = await fetchApi('/health', {
     method: 'GET',
     timeoutMs: API_TIMEOUT_MS,
+    wakeRetries: API_WAKE_RETRY_COUNT,
   });
 
   if (!response.ok) {
@@ -141,6 +167,7 @@ export async function apiRequest(
   token?: string,
   timeoutMs?: number
 ) {
+  const requestMethod = method.toUpperCase();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
@@ -150,10 +177,11 @@ export async function apiRequest(
   }
 
   const { response, data } = await fetchApi(endpoint, {
-    method,
+    method: requestMethod,
     headers,
     body: body ? JSON.stringify(body) : undefined,
     timeoutMs,
+    wakeRetries: requestMethod === 'GET' ? API_WAKE_RETRY_COUNT : 0,
   });
 
   if (!response.ok || data?.error) {
